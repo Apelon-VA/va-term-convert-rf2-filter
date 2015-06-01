@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	
+	<groupId>gov.vha.isaac.terminology.converters</groupId>
+	<artifactId>related-to-what-you-filter</artifactId>
+	<version>related-to-what-you-filter</version>
+	<packaging>pom</packaging>
+	
+	<name>RF2 Filter Utility Runner</name>
+	
+	<properties>
+		<rf2-filter.version>1.0-SNAPSHOT</rf2-filter.version>
+		
+		
+		<sourceData.groupId></sourceData.groupId>
+		<sourceData.artifactId></sourceData.artifactId>
+		<sourceData.version></sourceData.version>
+		
+	</properties>
+	
+	<scm>
+		<url>https://github.com/Apelon-VA/va-term-convert-rf2-filter.git</url>
+	</scm>
+
+	<dependencies>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>term-convert-rf2-filter-mojo</artifactId>
+			<version>${rf2-filter.version}</version>
+			<scope>compile</scope>
+			<optional>true</optional>  <!-- Not needed at runtime -->
+		</dependency>
+	</dependencies>
+	
+	<build>
+		<plugins>
+			<!-- Get source files from archiva -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>fetch-RF2-src</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>${sourceData.groupId}</groupId>
+									<artifactId>${sourceData.artifactId}</artifactId>
+									<version>${sourceData.version}</version>
+									<type>zip</type>
+								</artifactItem>
+							</artifactItems>
+							<outputDirectory>${project.build.directory}/generated-resources/src</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>term-convert-rf2-filter-mojo</artifactId>
+				<version>${rf2-filter.version}</version>
+				<executions>
+					<execution>
+						<id>Filter-RF2</id>
+						<goals>
+							<goal>filter-rf2</goal>
+						</goals>
+						<phase>generate-resources</phase>
+						<configuration>
+							<inputFileLocation>${project.build.directory}/generated-resources/src</inputFileLocation>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.4</version>
+				<executions>
+					<execution>
+						<id>attach-result</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<descriptors>
+								<descriptor>src/assembly/assembly.xml</descriptor>
+							</descriptors>
+							<attach>false</attach>
+							<encoding>UTF-8</encoding>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>1.9.1</version>
+				<executions>
+					<execution>
+						<id>attach-artifact</id>
+						<goals>
+							<goal>attach-artifact</goal>
+						</goals>
+						<configuration>
+							<artifacts>
+								<artifact>
+									<type>rf2.zip</type>
+									<!-- Note that the assembly plugin doesn't use the same classifier - we hack the classifier it returns to be a mis
+										mash of classifier and part of type.  So there is always a classifier on the produced zip file, even if no classifier
+										was specified by the user.  During artifact attachment, this classifier/type mess is corrected. -->
+									<file>${project.build.directory}/${project.build.finalName}-.rf2.zip</file>
+									<classifier>${resultArtifactClassifier}</classifier>
+								</artifact>
+							</artifacts>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
