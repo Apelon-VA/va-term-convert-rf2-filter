@@ -36,7 +36,8 @@
 	<build>
 		<plugins>
 			<!-- Get source files from archiva -->
-			<plugin>
+			<!-- Optional - for cases where you have the content to be filtered uploaded. -->
+			<!--plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
 				<executions>
@@ -59,7 +60,7 @@
 						</configuration>
 					</execution>
 				</executions>
-			</plugin>
+			</plugin-->
 
 			<plugin>
 				<groupId>${project.groupId}</groupId>
@@ -69,11 +70,15 @@
 					<execution>
 						<id>Filter-RF2</id>
 						<goals>
-							<goal>filter-rf2</goal>
+							<goal>rf2-filter</goal>
 						</goals>
 						<phase>generate-resources</phase>
 						<configuration>
-							<inputFileLocation>${project.build.directory}/generated-resources/src</inputFileLocation>
+							<!-- Aligns with the extract operation above -->
+							<!-- <inputDirectory>${project.build.directory}/generated-resources/src</inputDirectory>-->
+							
+							<!-- Or, use your own local path -->
+							<inputDirectory>/mnt/STORAGE/scratch/SnomedCT_RF2Release_US1000124_20150301/</inputDirectory>
 						</configuration>
 					</execution>
 				</executions>
