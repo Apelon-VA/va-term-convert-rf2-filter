@@ -10,7 +10,7 @@
 	<name>RF2 Filter Utility Runner</name>
 	
 	<properties>
-		<rf2-filter.version>1.0-SNAPSHOT</rf2-filter.version>
+		<rf2-filter.version>1.0</rf2-filter.version>
 
 		<!-- Used if you are extracting data from an artifact -->
 		<sourceData.groupId></sourceData.groupId>
