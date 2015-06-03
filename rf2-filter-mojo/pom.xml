@@ -9,7 +9,7 @@
 	
 	<groupId>gov.vha.isaac.terminology.converters</groupId>
 	<artifactId>term-convert-rf2-filter-mojo</artifactId>
-	<version>1.0</version>
+	<version>1.1-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 	
 	<name>RF2 Filter Utility</name>
