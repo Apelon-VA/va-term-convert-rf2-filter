@@ -2,21 +2,24 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	
-	<groupId>gov.vha.isaac.terminology.converters</groupId>
-	<artifactId>related-to-what-you-filter</artifactId>
-	<version>related-to-what-you-filter</version>
+	<!-- Configure these according to what you want the new, filtered artifact to be published as -->
+	<groupId>gov.va.oia.terminology.source.us-extension</groupId>
+	<artifactId>us-extension-src-data</artifactId>
+	<version>20150301</version>
 	<packaging>pom</packaging>
 	
 	<name>RF2 Filter Utility Runner</name>
 	
 	<properties>
 		<rf2-filter.version>1.0</rf2-filter.version>
+		
+		<!-- For no classifier, leave this blank-->
+		<resultArtifactClassifier></resultArtifactClassifier>
 
 		<!-- Used if you are extracting data from an artifact -->
 		<sourceData.groupId></sourceData.groupId>
 		<sourceData.artifactId></sourceData.artifactId>
 		<sourceData.version></sourceData.version>
-		
 	</properties>
 	
 	<scm>
@@ -30,7 +33,7 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>${project.groupId}</groupId>
+			<groupId>gov.vha.isaac.terminology.converters</groupId>
 			<artifactId>term-convert-rf2-filter-mojo</artifactId>
 			<version>${rf2-filter.version}</version>
 			<scope>compile</scope>
@@ -68,7 +71,7 @@
 			</plugin-->
 
 			<plugin>
-				<groupId>${project.groupId}</groupId>
+				<groupId>gov.vha.isaac.terminology.converters</groupId>
 				<artifactId>term-convert-rf2-filter-mojo</artifactId>
 				<version>${rf2-filter.version}</version>
 				<executions>
