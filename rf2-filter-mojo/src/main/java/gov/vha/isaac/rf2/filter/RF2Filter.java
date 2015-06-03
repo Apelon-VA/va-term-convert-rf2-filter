@@ -61,7 +61,7 @@ public class RF2Filter extends AbstractMojo
 	/**
 	 * Location to write the output file
 	 */
-	@Parameter(required = true, defaultValue = "${project.build.directory}") 
+	@Parameter(required = true, defaultValue = "${project.build.directory}/filtered") 
 	protected File outputDirectory;
 
 	/**

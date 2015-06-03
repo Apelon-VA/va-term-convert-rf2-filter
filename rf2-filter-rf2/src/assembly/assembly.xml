@@ -7,18 +7,11 @@
 	</formats>
 	<fileSets>
 		<fileSet>
-			<directory>${project.build.directory}</directory>
+			<directory>${project.build.directory}/filtered</directory>
 			<includes>
-				<include>*</include>
+				<include>**/*</include>
 			</includes>
 			<outputDirectory>/</outputDirectory>
-		</fileSet>
-		<fileSet>
-			<directory>${project.build.directory}</directory>
-			<includes>
-				<include>ConsoleOutput.txt</include>
-			</includes>
-			<outputDirectory>/Stats_and_Debug/</outputDirectory>
 		</fileSet>
 	</fileSets>
 	<files>

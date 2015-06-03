@@ -11,8 +11,8 @@
 	
 	<properties>
 		<rf2-filter.version>1.0-SNAPSHOT</rf2-filter.version>
-		
-		
+
+		<!-- Used if you are extracting data from an artifact -->
 		<sourceData.groupId></sourceData.groupId>
 		<sourceData.artifactId></sourceData.artifactId>
 		<sourceData.version></sourceData.version>
@@ -22,6 +22,11 @@
 	<scm>
 		<url>https://github.com/Apelon-VA/va-term-convert-rf2-filter.git</url>
 	</scm>
+	
+	<organization>
+		<name>U.S. Department of Veterans Affairs</name>
+		<url>www.va.gov</url>
+	</organization>
 
 	<dependencies>
 		<dependency>
@@ -79,6 +84,7 @@
 							
 							<!-- Or, use your own local path -->
 							<inputDirectory>/mnt/STORAGE/scratch/SnomedCT_RF2Release_US1000124_20150301/</inputDirectory>
+							<module>731000124108</module>
 						</configuration>
 					</execution>
 				</executions>
