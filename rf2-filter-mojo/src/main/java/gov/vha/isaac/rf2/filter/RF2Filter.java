@@ -36,6 +36,8 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Arrays;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -82,20 +84,12 @@ public class RF2Filter extends AbstractMojo
 	protected String converterResultVersion;
 	
 	/**
-	 * The 7 digit, numeric namespace identifier.  Optional - if not provided, 
-	 * only filters on module.
+	 * The numeric module identifier to extract (filter on). 
 	 */
-	@Parameter(required = false) 
-	protected Integer namespace;
-	
-	/**
-	 * The numeric module identifier.  Optional - if not provided, only filters on namespace. 
-	 */
-	@Parameter(required = false) 
+	@Parameter(required = true) 
 	protected Long module;
 	
-	private String namespaceString_;
-	private String moduleString_;
+	private ArrayList<String> moduleStrings_ = new ArrayList<>();;
 	StringBuilder summary_ = new StringBuilder();
 
 	@Override
@@ -106,24 +100,12 @@ public class RF2Filter extends AbstractMojo
 			throw new MojoExecutionException("Path doesn't exist or isn't a folder: " + inputDirectory);
 		}
 		
-		if (module == null && namespace ==  null)
+		if (module == null)
 		{
 			throw new MojoExecutionException("You must provide a module or namespace for filtering");
 		}
 		
-		if (module != null)
-		{
-			moduleString_ = module + "";
-		}
-		
-		if (namespace != null)
-		{
-			namespaceString_ = namespace + "";
-			if (namespaceString_.length() != 7)
-			{
-				throw new MojoExecutionException("Namespace identifiers must be 7 digits long");
-			}
-		}
+		moduleStrings_.add(module + "");
 		
 		outputDirectory.mkdirs();
 		File temp = new File(outputDirectory, inputDirectory.getName());
@@ -131,16 +113,50 @@ public class RF2Filter extends AbstractMojo
 		
 		Path source = inputDirectory.toPath();
 		Path target = temp.toPath();
-		
-		getLog().info("Reading from " + inputDirectory.getAbsolutePath());
-		getLog().info("Writing to " + outputDirectory.getAbsolutePath());
-		
-		summary_.append("This content was filtered by an RF2 filter tool.  The parameters were namespace: " + namespaceString_ + " module: " + moduleString_ 
-				+ " software version: " + converterVersion);
-		summary_.append("\r\n\r\n");
-		
 		try
 		{
+			getLog().info("Reading from " + inputDirectory.getAbsolutePath());
+			getLog().info("Writing to " + outputDirectory.getCanonicalPath());
+		
+			summary_.append("This content was filtered by an RF2 filter tool.  The parameters were module: " + module + " software version: " + converterVersion);
+			summary_.append("\r\n\r\n");
+		
+			getLog().info("Checking for nested child modules");
+		
+			//look in sct2_Relationship_ files, find anything where the 6th column (destinationId) is the 
+			//starting module ID concept - and add that sourceId (5th column) to our list of modules to extract
+			Files.walkFileTree(source, new SimpleFileVisitor<Path>()
+			{
+				@Override
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
+				{
+					if (file.toFile().getName().startsWith("sct2_Relationship_"))
+					{
+						//don't look for quotes, the data is bad, and has floating instances of '"' all by itself
+						CSVReader csvReader = new CSVReader(new InputStreamReader(new FileInputStream(file.toFile())), '\t', CSVParser.NULL_CHARACTER); 
+						String[] line = csvReader.readNext();
+						if (!line[4].equals("sourceId") || !line[5].equals("destinationId"))
+						{
+							csvReader.close();
+							throw new IOException("Unexpected error looking for nested modules");
+						}
+						line = csvReader.readNext();
+						while (line != null)
+						{
+							if (line[5].equals(moduleStrings_.get(0)))
+							{
+								moduleStrings_.add(line[4]);
+							}
+							line = csvReader.readNext();
+						}
+						csvReader.close();
+					}
+					return FileVisitResult.CONTINUE;
+				}
+			});
+			
+			log("Full module list (including detected nested modules: " + Arrays.toString(moduleStrings_.toArray(new String[moduleStrings_.size()])));
+			
 			Files.walkFileTree(source, new SimpleFileVisitor<Path>()
 			{
 				@Override
@@ -168,7 +184,7 @@ public class RF2Filter extends AbstractMojo
 				}
 			});
 			
-			Files.write(new File(temp, "FilterInfo.txt").toPath(), summary_.toString().getBytes(), StandardOpenOption.CREATE_NEW, StandardOpenOption.TRUNCATE_EXISTING);
+			Files.write(new File(temp, "FilterInfo.txt").toPath(), summary_.toString().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 		}
 		catch (IOException e)
 		{
@@ -182,6 +198,7 @@ public class RF2Filter extends AbstractMojo
 	private void handleFile(Path inputFile, Path outputFile) throws IOException
 	{
 		boolean justCopy = true;
+		boolean justSkip = false;
 		
 		if (inputFile.toFile().getName().toLowerCase().endsWith(".txt"))
 		{
@@ -200,8 +217,6 @@ public class RF2Filter extends AbstractMojo
 			long total = 0;
 			
 			int moduleColumn = -1;
-			int warningCount = 0;
-			
 			
 			while ((line = fileReader.readLine()) != null)
 			{
@@ -212,23 +227,17 @@ public class RF2Filter extends AbstractMojo
 				pos.flush();
 				String[] fields = csvReader.readNext();
 	
-				boolean fieldsContainDesiredNamespace = fieldsContainDesiredNamespace(fields);
-				boolean correctModule = (moduleColumn >= 0 && moduleString_ != null && fields[moduleColumn].equals(moduleString_) ? true : false);
-				
-				//sanity check
-				if (warningCount < 10)
+				boolean correctModule = false;
+				for (String ms : moduleStrings_)
 				{
-					if (moduleString_ != null && namespaceString_ != null)
+					if (moduleColumn >=0 && fields[moduleColumn].equals(ms))
 					{
-						if (fieldsContainDesiredNamespace != correctModule)
-						{
-							getLog().warn("Found requested namespace on a line that doesn't contain the module: " + line);
-							warningCount++;
-						}
+						correctModule = true;
+						break;
 					}
 				}
 				
-				if (firstLine || fieldsContainDesiredNamespace || correctModule)
+				if (firstLine || correctModule)
 				{
 					kept++;
 					fileWriter.write(line);
@@ -259,6 +268,12 @@ public class RF2Filter extends AbstractMojo
 							break;
 						}
 					}
+					if (moduleColumn < 0)
+					{
+						log("No moduleId column found - skipping file");
+						justSkip = true;
+						break;
+					}
 				}
 			}
 	
@@ -278,57 +293,12 @@ public class RF2Filter extends AbstractMojo
 			Files.copy(inputFile, outputFile, StandardCopyOption.REPLACE_EXISTING);
 			log("Copied file " + inputDirectory.toPath().relativize(inputFile).toString());
 		}
-	}
-	
-	private boolean fieldsContainDesiredNamespace(String[] fields)
-	{
-		if (namespaceString_ == null)
+		
+		if (justSkip)
 		{
-			return true;
+			Files.delete(outputFile);
+			log("Skipped file " + inputDirectory.toPath().relativize(inputFile).toString() + " because it doesn't contain a moduleId");
 		}
-		for (String field : fields)
-		{
-			//must be a numeric
-			if (onlyContainsDigits(field))
-			{
-				//must contain the 7 digit namepace, 3 digits in from the right side (per the SCT spec)
-				if (field.length() >= 10)
-				{
-					String temp = field.substring(0, field.length() - 3);
-					if (temp.endsWith(namespaceString_))
-					{
-						return true;
-					}
-				}
-			}
-		}
-		//No field contained the namespace
-		return false;
-	}
-	
-	/**
-	 * Long.parseLong is terribly slow....
-	 */
-	private boolean onlyContainsDigits(String str)
-	{
-		if (str == null)
-		{
-			return false;
-		}
-		int length = str.length();
-		if (length == 0)
-		{
-			return false;
-		}
-		for (int i = 0; i < length; i++)
-		{
-			char c = str.charAt(i);
-			if (c <= '/' || c >= ':')
-			{
-				return false;
-			}
-		}
-		return true;
 	}
 	
 	private void log(String message)
@@ -346,7 +316,6 @@ public class RF2Filter extends AbstractMojo
 		RF2Filter rf2Filter = new RF2Filter();
 		rf2Filter.outputDirectory = new File("../rf2-filter-rf2/target/");
 		rf2Filter.inputDirectory = new File("/mnt/STORAGE/scratch/SnomedCT_RF2Release_US1000124_20150301/");
-		rf2Filter.namespace = 1000124;  //us extension
 		rf2Filter.module = 731000124108l;  //us extension
 		rf2Filter.converterResultVersion = "foo";
 		rf2Filter.converterVersion = "foo";
